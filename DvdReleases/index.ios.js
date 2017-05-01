@@ -35,7 +35,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     textAlign: 'center',
-    margin: 50,
+    marginTop: 50,
+    marginBottom: 30
   },
   list: {
     margin: 10

@@ -5,7 +5,8 @@ import {
   Image,
   StyleSheet,
   TouchableHighlight,
-  Linking
+  Linking,
+  RefreshControl
 } from 'react-native';
 import GridView from 'react-native-grid-view';
 
@@ -16,7 +17,8 @@ export default class MovieList extends Component {
     super();
     this.state = {
       dataSource: [],
-      loaded: false
+      loaded: false,
+      refreshing: false
     };
   }
 
@@ -31,40 +33,40 @@ export default class MovieList extends Component {
   }
 
   componentDidMount() {
-    this.getMoviesFromApiAsync().then(function(movies) {
-      this.setState({
-        dataSource: movies,
-        loaded: true
-      })
-    }.bind(this));
+    this.fetchData();
   }
 
   render() {
-    if (!this.state.loaded) {
-      return this.renderLoadingView();
-    }
-
     return (
       <GridView
         items={this.state.dataSource}
         itemsPerRow={MOVIES_PER_ROW}
         renderItem={this.renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={this.state.refreshing}
+            onRefresh={this.onRefresh.bind(this)}
+          />
+        }
       />
     );
   }
 
-  renderLoadingView() {
-    return (
-      <View>
-        <Text>
-          Loading movies...
-        </Text>
-      </View>
-    );
-  }
-  
   renderItem(item) {
     return <Movie key={item.title} {...item} />
+  }
+
+  onRefresh() {
+    this.setState(Object.assign({}, this.state, {refreshing: true}));
+    this.fetchData().then(() => {
+      this.setState(Object.assign({}, this.state, {refreshing: false}));
+    });
+  }
+
+  fetchData() {
+    return this.getMoviesFromApiAsync().then(function(movies) {
+      this.setState(Object.assign({}, this.state, {dataSource: movies, loaded: true}));
+    }.bind(this));
   }
 }
 
