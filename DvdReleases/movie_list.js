@@ -23,7 +23,7 @@ export default class MovieList extends Component {
   }
 
   getMoviesFromApiAsync() {
-    return fetch('http://35.177.238.232:5000/releases')
+    return fetch('https://5yw1u1sqa6.execute-api.eu-west-1.amazonaws.com/production/new-dvd-releases')
       .then((response) => {
         return response.json();
       })
