@@ -11,19 +11,32 @@ import {
 import GridView from 'react-native-grid-view';
 
 const MOVIES_PER_ROW = 2;
+const BASE_URL = 'https://xt6la9orzh.execute-api.eu-west-1.amazonaws.com/production/dvd-releases/';
+
+var movieData = {};
 
 export default class MovieList extends Component {
-  constructor() {
+  constructor(props) {
     super();
-    this.state = {
+    this.state = Object.assign({
       dataSource: [],
       loaded: false,
       refreshing: false
-    };
+    });
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.endpoint != this.props.endpoint) {
+      this.onRefresh();
+    }
+  }
+
+  componentDidMount() {
+    this.onRefresh();
   }
 
   getMoviesFromApiAsync() {
-    return fetch('https://5yw1u1sqa6.execute-api.eu-west-1.amazonaws.com/production/new-dvd-releases')
+    return fetch(BASE_URL + this.props.endpoint)
       .then((response) => {
         return response.json();
       })
@@ -32,24 +45,25 @@ export default class MovieList extends Component {
       });
   }
 
-  componentDidMount() {
-    this.fetchData();
-  }
-
   render() {
-    return (
-      <GridView
-        items={this.state.dataSource}
-        itemsPerRow={MOVIES_PER_ROW}
-        renderItem={this.renderItem}
-        refreshControl={
-          <RefreshControl
-            refreshing={this.state.refreshing}
-            onRefresh={this.onRefresh.bind(this)}
-          />
-        }
-      />
-    );
+    if (this.state.refreshing) {
+      return <Text>LOADING</Text>
+    }
+    else {
+      return (
+        <GridView
+          items={this.state.dataSource}
+          itemsPerRow={MOVIES_PER_ROW}
+          renderItem={this.renderItem}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.refreshing}
+              onRefresh={this.onRefresh.bind(this)}
+            />
+          }
+        />
+      );
+    }
   }
 
   renderItem(item) {
@@ -58,15 +72,25 @@ export default class MovieList extends Component {
 
   onRefresh() {
     this.setState(Object.assign({}, this.state, {refreshing: true}));
-    this.fetchData().then(() => {
-      this.setState(Object.assign({}, this.state, {refreshing: false}));
-    });
+    this.fetchData().then(function(data) {
+      this.setState(
+        Object.assign({},
+        this.state,
+        {dataSource: data, loaded: true, refreshing: false}));
+    }.bind(this));
   }
 
   fetchData() {
-    return this.getMoviesFromApiAsync().then(function(movies) {
-      this.setState(Object.assign({}, this.state, {dataSource: movies, loaded: true}));
-    }.bind(this));
+    let fetchIt, endpoint = this.props.endpoint;
+    if (movieData[this.props.endpoint]) {
+      return Promise.resolve(movieData[endpoint]);
+    }
+    else {
+      return this.getMoviesFromApiAsync().then(function(data) {
+        movieData[endpoint] = data;
+        return data;
+      });
+    }
   }
 }
 
