@@ -7,11 +7,20 @@ import {
   TouchableHighlight,
   Linking
 } from 'react-native';
+import OneSignal from 'react-native-onesignal';
 
 export default class Movie extends Component {
+  componentDidMount() {
+    if (this.isReleased()) {
+      OneSignal.deleteTag(this.props.id_);
+    }
+  }
+
   render() {
     return (
-      <TouchableHighlight onPress={this.onMoviePressed.bind(this)} underlayColor={"#CCCCCC"}>
+      <TouchableHighlight onPress={this.onMoviePressed.bind(this)}
+                          onLongPress={this.onMovieLongPressed.bind(this)}
+                          underlayColor={"#CCCCCC"}>
         <View style={styles.movie}>
           <Image
             style={styles.poster}
@@ -32,6 +41,24 @@ export default class Movie extends Component {
         return Linking.openURL(url);
       }
     }).catch(err => console.error('An error occurred', err));
+  }
+
+  onMovieLongPressed() {
+    let releaseDate = new Date(this.props.release_date);
+    let now = new Date();
+    if (!this.isReleased()) {
+      OneSignal.sendTag(this.props.id_, 'true');
+      console.warn('Subscribed to', this.props.id_);
+    }
+    else {
+      console.warn('The movie is already released');
+    }
+  }
+
+  isReleased() {
+    let releaseDate = new Date(this.props.release_date);
+    let now = new Date();
+    return now > releaseDate;
   }
 }
 

@@ -9,13 +9,11 @@ import Movie from './movie.js';
 const MOVIES_PER_ROW = 2;
 const BASE_URL = 'https://xt6la9orzh.execute-api.eu-west-1.amazonaws.com/production/dvd-releases/';
 
-var movieData = {};
-
 export default class MovieList extends Component {
   constructor(props) {
     super();
     this.state = Object.assign({
-      dataSource: [],
+      cache: {},
       loaded: false,
       refreshing: false
     });
@@ -42,13 +40,11 @@ export default class MovieList extends Component {
   }
 
   render() {
-    if (this.state.refreshing) {
-      return <Text>LOADING</Text>
-    }
-    else {
+    let items = this.state.cache[this.props.endpoint];
+    if (items) {
       return (
         <GridView
-          items={this.state.dataSource}
+          items={items}
           itemsPerRow={MOVIES_PER_ROW}
           renderItem={this.renderItem}
           refreshControl={
@@ -60,32 +56,37 @@ export default class MovieList extends Component {
         />
       );
     }
+    else {
+      return <Text>LOADING</Text>
+    }
   }
 
   renderItem(item) {
-    return <Movie key={item.title} {...item} />
+    return <Movie key={item.id_} {...item} />
   }
 
   onRefresh() {
     this.setState(Object.assign({}, this.state, {refreshing: true}));
-    this.fetchData().then(function(data) {
-      this.setState(
-        Object.assign({},
-        this.state,
-        {dataSource: data, loaded: true, refreshing: false}));
+    return this.fetchData().then(function() {
+      this.setState(Object.assign({}, this.state, {refreshing: false}));
     }.bind(this));
   }
 
   fetchData() {
     let fetchIt, endpoint = this.props.endpoint;
-    if (movieData[this.props.endpoint]) {
-      return Promise.resolve(movieData[endpoint]);
+    if (this.state.cache[endpoint]) {
+      return Promise.resolve(this.state.cache[endpoint]);
     }
     else {
       return this.getMoviesFromApiAsync().then(function(data) {
-        movieData[endpoint] = data;
+        let cache = Object.assign({}, this.state.cache);
+        cache[endpoint] = data;
+        this.setState(
+          Object.assign({},
+          this.state,
+          {cache: cache, loaded: true, refreshing: false}));
         return data;
-      });
+      }.bind(this));
     }
   }
 }
