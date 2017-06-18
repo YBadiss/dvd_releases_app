@@ -29,7 +29,9 @@ export default class MovieView extends Component {
         <Text style={styles.title}>
           {this.state.title}
         </Text>
-        <MovieList endpoint={this.state.endpoint}/>
+        <MovieList endpoint={this.state.endpoint}
+                   favourites={this.props.favourites}
+                   api={this.props.api} />
       </View>
     );
   }

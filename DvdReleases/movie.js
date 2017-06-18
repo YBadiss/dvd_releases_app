@@ -7,12 +7,18 @@ import {
   TouchableHighlight,
   Linking
 } from 'react-native';
-import OneSignal from 'react-native-onesignal';
 
 export default class Movie extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      isFavourite: props.isFavourite
+    }
+  }
+
   componentDidMount() {
-    if (this.isReleased()) {
-      OneSignal.deleteTag(this.props.id_);
+    if (this.state.isFavourite && this.isReleased()) {
+      this.reverseSubscription();
     }
   }
 
@@ -27,6 +33,9 @@ export default class Movie extends Component {
             source={{uri: this.props.poster}}
           />
           <Text style={styles.title}>{this.props.title}</Text>
+          {this.state.isFavourite &&
+            <Image source={require('./img/hearth1.png')} resizeMode='cover' style={styles.favoriteIcon} />
+          }
         </View>
       </TouchableHighlight>
     );
@@ -44,15 +53,26 @@ export default class Movie extends Component {
   }
 
   onMovieLongPressed() {
-    let releaseDate = new Date(this.props.release_date);
-    let now = new Date();
     if (!this.isReleased()) {
-      OneSignal.sendTag(this.props.id_, 'true');
-      console.warn('Subscribed to', this.props.id_);
+      this.reverseSubscription();
     }
     else {
-      console.warn('The movie is already released');
+      console.warn('Already released');
     }
+  }
+
+  reverseSubscription() {
+    let isFavourite = this.state.isFavourite;
+    let action = isFavourite ? this.props.api.unsubscribeFromMovie : this.props.api.subscribeToMovie;
+    action = action.bind(this.props.api);
+    return action(this.props.id_).then(function(success) {
+        if (success) {
+          this.setState(Object.assign({}, this.state, {isFavourite: !isFavourite}));
+        }
+        else {
+          console.warn('Failed to change subscription for ', this.props.id_);
+        }
+    }.bind(this));
   }
 
   isReleased() {
@@ -81,4 +101,11 @@ const styles = StyleSheet.create({
     width: 170,
     textAlign: 'center',
   },
+  favoriteIcon: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 30,
+    height: 26
+  }
 });

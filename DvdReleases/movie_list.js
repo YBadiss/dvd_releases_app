@@ -7,13 +7,12 @@ import GridView from 'react-native-grid-view';
 import Movie from './movie.js';
 
 const MOVIES_PER_ROW = 2;
-const BASE_URL = 'https://xt6la9orzh.execute-api.eu-west-1.amazonaws.com/production/dvd-releases/';
 
 export default class MovieList extends Component {
   constructor(props) {
     super();
     this.state = Object.assign({
-      cache: {},
+      movies: undefined,
       loaded: false,
       refreshing: false
     });
@@ -29,24 +28,14 @@ export default class MovieList extends Component {
     this.onRefresh();
   }
 
-  getMoviesFromApiAsync() {
-    return fetch(BASE_URL + this.props.endpoint)
-      .then((response) => {
-        return response.json();
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }
-
   render() {
-    let items = this.state.cache[this.props.endpoint];
+    let items = this.state.movies;
     if (items) {
       return (
         <GridView
           items={items}
           itemsPerRow={MOVIES_PER_ROW}
-          renderItem={this.renderItem}
+          renderItem={this.renderItem.bind(this)}
           refreshControl={
             <RefreshControl
               refreshing={this.state.refreshing}
@@ -62,31 +51,14 @@ export default class MovieList extends Component {
   }
 
   renderItem(item) {
-    return <Movie key={item.id_} {...item} />
+    item.isFavourite = this.props.favourites.indexOf(item.id_) >= 0;
+    return <Movie key={item.id_} api={this.props.api} {...item} />
   }
 
   onRefresh() {
     this.setState(Object.assign({}, this.state, {refreshing: true}));
-    return this.fetchData().then(function() {
-      this.setState(Object.assign({}, this.state, {refreshing: false}));
+    return this.props.api.getMovies(this.props.endpoint).then(function(movies) {
+      this.setState(Object.assign({}, this.state, {movies: movies, refreshing: false}));
     }.bind(this));
-  }
-
-  fetchData() {
-    let fetchIt, endpoint = this.props.endpoint;
-    if (this.state.cache[endpoint]) {
-      return Promise.resolve(this.state.cache[endpoint]);
-    }
-    else {
-      return this.getMoviesFromApiAsync().then(function(data) {
-        let cache = Object.assign({}, this.state.cache);
-        cache[endpoint] = data;
-        this.setState(
-          Object.assign({},
-          this.state,
-          {cache: cache, loaded: true, refreshing: false}));
-        return data;
-      }.bind(this));
-    }
   }
 }
